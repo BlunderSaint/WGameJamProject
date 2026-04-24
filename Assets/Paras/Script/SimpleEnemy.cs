@@ -23,6 +23,11 @@ public class SimpleEnemy : MonoBehaviour
     private bool isChasing = false;
     private float _nextAttackTime;
 
+    [Header("Patrol Points")]
+    public Transform pointA;
+    public Transform pointB;
+    private Transform currentPatrolTarget;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
