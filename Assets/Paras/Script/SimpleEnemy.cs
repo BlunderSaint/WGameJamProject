@@ -1,38 +1,123 @@
 using UnityEngine;
-using UnityEngine.AI;
 
 public class SimpleEnemy : MonoBehaviour
 {
-    public float range = 10f;
-    public int damage = 10;
-    public LayerMask mask; // Walls that block sight
+    public float moveSpeed = 3f;
+    public float range = 8f;
+    public LayerMask mask;
 
-    private NavMeshAgent agent;
+    public Transform wallCheck;
+    public Transform ledgeCheck;
+
+    [Header("Attack Settings")]
+    public int damageAmount = 10;
+    public float attackCooldown = 1.0f;
+
+    private Rigidbody2D rb;
+    private int direction = 1;
     private GameObject[] players;
+
+    private Vector2 lastKnownPos;
+    private float currentSearchTime;
+    private bool isSearching = false;
+    private bool isChasing = false;
+    private float _nextAttackTime;
 
     void Start()
     {
-        agent = GetComponent<NavMeshAgent>();
+        rb = GetComponent<Rigidbody2D>();
         players = GameObject.FindGameObjectsWithTag("Player");
     }
 
     void Update()
     {
-        foreach (GameObject p in players)
+        GameObject visiblePlayer = GetVisiblePlayer();
+
+        if (visiblePlayer != null)
         {
-            float dist = Vector3.Distance(transform.position, p.transform.position);
+            // STATE: CHASE
+            isChasing = true;
+            isSearching = false;
+            lastKnownPos = visiblePlayer.transform.position;
+            MoveToward(lastKnownPos.x);
 
-            // If player is in range AND not behind a wall
-            if (dist < range && !Physics.Linecast(transform.position, p.transform.position, mask))
+            // FIXED: Attack Logic with Cooldown
+            if (Vector2.Distance(transform.position, lastKnownPos) < 1.2f)
             {
-                agent.SetDestination(p.transform.position);
-
-                // If touching player, hurt them
-                if (dist < 1.5f)
+                if (Time.time >= _nextAttackTime)
                 {
-                    //p.GetComponent<Health>().TakeDamage(damage);
+                    //visiblePlayer.GetComponent<Health>()?.TakeDamage(damageAmount);
+                    //_nextAttackTime = Time.time + attackCooldown;
                 }
             }
         }
+        else if (isChasing)
+        {
+            // STATE: JUST LOST PLAYER -> START SEARCHING
+            isChasing = false;
+            isSearching = true;
+            currentSearchTime = 5f;
+        }
+
+        if (isSearching)
+        {
+            Search();
+        }
+        else if (!isChasing)
+        {
+            Patrol();
+        }
+    }
+
+    void MoveToward(float targetX)
+    {
+        direction = (targetX > transform.position.x) ? 1 : -1;
+        rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+        transform.localScale = new Vector3(direction, 1, 1);
+    }
+
+    void Search()
+    {
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+        currentSearchTime -= Time.deltaTime;
+
+        if (currentSearchTime <= 0)
+        {
+            isSearching = false;
+        }
+    }
+
+    void Patrol()
+    {
+        bool hittingWall = Physics2D.OverlapCircle(wallCheck.position, 0.1f, mask);
+        bool atLedge = !Physics2D.OverlapCircle(ledgeCheck.position, 0.1f, mask);
+
+        if (hittingWall || atLedge)
+        {
+            direction *= -1;
+        }
+
+        rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+        transform.localScale = new Vector3(direction, 1, 1);
+    }
+
+    GameObject GetVisiblePlayer()
+    {
+        foreach (GameObject p in players)
+        {
+            if (CanSeeTarget(p.transform)) return p;
+        }
+        return null;
+    }
+
+    bool CanSeeTarget(Transform target)
+    {
+        float distance = Vector2.Distance(transform.position, target.position);
+        if (distance < range)
+        {
+            RaycastHit2D hit = Physics2D.Linecast(transform.position, target.position, mask);
+            return hit.collider == null;
+        }
+        return false;
     }
 }
