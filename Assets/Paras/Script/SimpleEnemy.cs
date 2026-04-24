@@ -89,14 +89,26 @@ public class SimpleEnemy : MonoBehaviour
 
     void Patrol()
     {
-        bool hittingWall = Physics2D.OverlapCircle(wallCheck.position, 0.1f, mask);
-        bool atLedge = !Physics2D.OverlapCircle(ledgeCheck.position, 0.1f, mask);
-
-        if (hittingWall || atLedge)
+        // 1. Check if we reached the current target (within 0.5 units)
+        if (Vector2.Distance(transform.position, currentPatrolTarget.position) < 0.5f)
         {
+            // Swap the target
+            currentPatrolTarget = (currentPatrolTarget == pointA) ? pointB : pointA;
+        }
+
+        // 2. Decide which way to walk based on the target's position
+        direction = (currentPatrolTarget.position.x > transform.position.x) ? 1 : -1;
+
+        // 3. Optional: Keep the ledge safety check just in case you place a point off a cliff!
+        bool atLedge = !Physics2D.OverlapCircle(ledgeCheck.position, 0.1f, mask);
+        if (atLedge)
+        {
+            // Force them back if they almost fall off
+            currentPatrolTarget = (currentPatrolTarget == pointA) ? pointB : pointA;
             direction *= -1;
         }
 
+        // 4. Apply movement and flip sprite
         rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
         transform.localScale = new Vector3(direction, 1, 1);
     }
