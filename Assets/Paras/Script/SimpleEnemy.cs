@@ -28,10 +28,12 @@ public class SimpleEnemy : MonoBehaviour
     public Transform pointB;
     private Transform currentPatrolTarget;
 
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         players = GameObject.FindGameObjectsWithTag("Player");
+        currentPatrolTarget = pointA;  
     }
 
     void Update()
@@ -94,26 +96,17 @@ public class SimpleEnemy : MonoBehaviour
 
     void Patrol()
     {
-        // 1. Check if we reached the current target (within 0.5 units)
-        if (Vector2.Distance(transform.position, currentPatrolTarget.position) < 0.5f)
+        // 1. Use Mathf.Abs to only check horizontal distance (ignores if points are too high/low)
+        if (Mathf.Abs(transform.position.x - currentPatrolTarget.position.x) < 0.5f)
         {
             // Swap the target
             currentPatrolTarget = (currentPatrolTarget == pointA) ? pointB : pointA;
         }
 
-        // 2. Decide which way to walk based on the target's position
+        // 2. Always move toward the CURRENT target
         direction = (currentPatrolTarget.position.x > transform.position.x) ? 1 : -1;
 
-        // 3. Optional: Keep the ledge safety check just in case you place a point off a cliff!
-        bool atLedge = !Physics2D.OverlapCircle(ledgeCheck.position, 0.1f, mask);
-        if (atLedge)
-        {
-            // Force them back if they almost fall off
-            currentPatrolTarget = (currentPatrolTarget == pointA) ? pointB : pointA;
-            direction *= -1;
-        }
-
-        // 4. Apply movement and flip sprite
+        // 3. Apply velocity and flip the sprite
         rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
         transform.localScale = new Vector3(direction, 1, 1);
     }
@@ -136,5 +129,26 @@ public class SimpleEnemy : MonoBehaviour
             return hit.collider == null;
         }
         return false;
+    }
+
+
+    private void OnDrawGizmosSelected()
+    {
+        // 1. Draw the detection range
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, range);
+
+        // 2. Draw the patrol points and a path line
+        if (pointA != null && pointB != null)
+        {
+            Gizmos.color = Color.green;
+
+            // Draw little spheres at the exact point locations
+            Gizmos.DrawSphere(pointA.position, 0.2f);
+            Gizmos.DrawSphere(pointB.position, 0.2f);
+
+            // Draw a line connecting them so you can see the patrol path
+            Gizmos.DrawLine(pointA.position, pointB.position);
+        }
     }
 }
