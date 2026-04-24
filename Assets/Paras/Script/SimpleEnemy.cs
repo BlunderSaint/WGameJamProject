@@ -2,7 +2,10 @@ using UnityEngine;
 
 public class SimpleEnemy : MonoBehaviour
 {
-    public float moveSpeed = 3f;
+    [Header("Movement Speeds")]
+    public float walkSpeed = 1.5f;
+    public float runSpeed = 3.5f;
+
     public float range = 8f;
     public LayerMask mask;
 
@@ -14,6 +17,7 @@ public class SimpleEnemy : MonoBehaviour
     public float attackCooldown = 1.0f;
 
     private Rigidbody2D rb;
+    private Animator anim; // Added Animator
     private int direction = 1;
     private GameObject[] players;
 
@@ -32,8 +36,9 @@ public class SimpleEnemy : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>(); // Fetch the Animator
         players = GameObject.FindGameObjectsWithTag("Player");
-        currentPatrolTarget = pointA;  
+        currentPatrolTarget = pointA;
     }
 
     void Update()
@@ -46,7 +51,9 @@ public class SimpleEnemy : MonoBehaviour
             isChasing = true;
             isSearching = false;
             lastKnownPos = visiblePlayer.transform.position;
-            MoveToward(lastKnownPos.x);
+
+            // Pass the RUN speed to MoveToward
+            MoveToward(lastKnownPos.x, runSpeed);
 
             // FIXED: Attack Logic with Cooldown
             if (Vector2.Distance(transform.position, lastKnownPos) < 1.2f)
@@ -74,16 +81,23 @@ public class SimpleEnemy : MonoBehaviour
         {
             Patrol();
         }
+
+        // ================================== ANIMATOR UPDATE ==================================
+        // Send the absolute value of the current velocity to the Animator's "Speed" parameter
+        if (anim != null)
+        {
+            anim.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
+        }
     }
 
-    void MoveToward(float targetX)
+    void MoveToward(float targetX, float speed)//==================================move toward a specific x position (used for chasing)==================
     {
         direction = (targetX > transform.position.x) ? 1 : -1;
-        rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+        rb.linearVelocity = new Vector2(direction * speed, rb.linearVelocity.y);
         transform.localScale = new Vector3(direction, 1, 1);
     }
 
-    void Search()
+    void Search()//==================================search for the player at the last known position==================
     {
         rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
         currentSearchTime -= Time.deltaTime;
@@ -94,7 +108,7 @@ public class SimpleEnemy : MonoBehaviour
         }
     }
 
-    void Patrol()
+    void Patrol()//==================================patrol between two points==================
     {
         // 1. Use Mathf.Abs to only check horizontal distance (ignores if points are too high/low)
         if (Mathf.Abs(transform.position.x - currentPatrolTarget.position.x) < 0.5f)
@@ -106,12 +120,12 @@ public class SimpleEnemy : MonoBehaviour
         // 2. Always move toward the CURRENT target
         direction = (currentPatrolTarget.position.x > transform.position.x) ? 1 : -1;
 
-        // 3. Apply velocity and flip the sprite
-        rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+        // 3. Apply velocity using WALK speed and flip the sprite
+        rb.linearVelocity = new Vector2(direction * walkSpeed, rb.linearVelocity.y);
         transform.localScale = new Vector3(direction, 1, 1);
     }
 
-    GameObject GetVisiblePlayer()
+    GameObject GetVisiblePlayer()//==================================check if any player is visible==================
     {
         foreach (GameObject p in players)
         {
@@ -120,7 +134,7 @@ public class SimpleEnemy : MonoBehaviour
         return null;
     }
 
-    bool CanSeeTarget(Transform target)
+    bool CanSeeTarget(Transform target) //==================================line of sight check==================
     {
         float distance = Vector2.Distance(transform.position, target.position);
         if (distance < range)
@@ -132,7 +146,7 @@ public class SimpleEnemy : MonoBehaviour
     }
 
 
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmosSelected()//==================================gizmos for patrol points and detection range==================
     {
         // 1. Draw the detection range
         Gizmos.color = Color.red;
