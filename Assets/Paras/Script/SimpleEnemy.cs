@@ -136,10 +136,21 @@ public class SimpleEnemy : MonoBehaviour
     bool CanSeeTarget(Transform target) //==================================line of sight check==================
     {
         float distance = Vector2.Distance(transform.position, target.position);
+
+        // 1. Is the player close enough?
         if (distance < range)
         {
-            RaycastHit2D hit = Physics2D.Linecast(transform.position, target.position, mask);
-            return hit.collider == null;
+            // 2. Is the player IN FRONT of the enemy?
+            // Mathf.Sign returns 1 if positive (right), -1 if negative (left)
+            float dirToPlayer = Mathf.Sign(target.position.x - transform.position.x);
+            float currentFacingDir = Mathf.Sign(transform.localScale.x);
+
+            if (dirToPlayer == currentFacingDir)
+            {
+                // 3. Is there a wall in the way?
+                RaycastHit2D hit = Physics2D.Linecast(transform.position, target.position, mask);
+                return hit.collider == null;
+            }
         }
         return false;
     }
