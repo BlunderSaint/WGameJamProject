@@ -1,4 +1,5 @@
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class SimpleEnemy : MonoBehaviour
 {
@@ -6,125 +7,126 @@ public class SimpleEnemy : MonoBehaviour
     public float walkSpeed = 1.5f;
     public float runSpeed = 3.5f;
 
+    [Header("Detection")]
     public float range = 8f;
     public LayerMask mask;
+    public float detectionTime = 2f;
 
+    private float detectionMeter = 0f;
+    private bool isAlerted = false;
 
-
-    [Header("Attack Settings")]
-    public int damageAmount = 10;
-    public float attackCooldown = 1.0f;
+    [Header("UI")]
+    public Slider detectionSlider;
 
     private Rigidbody2D rb;
-    private Animator anim; // Added Animator
     private int direction = 1;
     private GameObject[] players;
-
     private Vector2 lastKnownPos;
-    private float currentSearchTime;
-    private bool isSearching = false;
-    private bool isChasing = false;
-    private float _nextAttackTime;
 
     [Header("Patrol Points")]
     public Transform pointA;
     public Transform pointB;
     private Transform currentPatrolTarget;
 
-
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>(); // Fetch the Animator
+
         players = GameObject.FindGameObjectsWithTag("Player");
+
         currentPatrolTarget = pointA;
+
+        // 🔥 AUTO GET SLIDER FROM CHILD
+        detectionSlider = GetComponentInChildren<Slider>();
+
+        if (detectionSlider != null)
+        {
+            detectionSlider.minValue = 0;
+            detectionSlider.maxValue = detectionTime;
+            detectionSlider.value = 0;
+            detectionSlider.gameObject.SetActive(false);
+        }
     }
 
     void Update()
     {
         GameObject visiblePlayer = GetVisiblePlayer();
 
+        // ================= DETECTION =================
         if (visiblePlayer != null)
         {
-            // STATE: CHASE
-            isChasing = true;
-            isSearching = false;
+            detectionMeter += Time.deltaTime;
+            detectionMeter = Mathf.Clamp(detectionMeter, 0, detectionTime);
+
             lastKnownPos = visiblePlayer.transform.position;
 
-            // Pass the RUN speed to MoveToward
+            if (detectionMeter >= detectionTime)
+                isAlerted = true;
+        }
+        else
+        {
+            detectionMeter -= Time.deltaTime;
+            detectionMeter = Mathf.Clamp(detectionMeter, 0, detectionTime);
+
+            if (detectionMeter <= 0)
+                isAlerted = false;
+        }
+
+        // ================= MOVEMENT =================
+        if (isAlerted)
+        {
             MoveToward(lastKnownPos.x, runSpeed);
-
-            // FIXED: Attack Logic with Cooldown
-            if (Vector2.Distance(transform.position, lastKnownPos) < 1.2f)
-            {
-                if (Time.time >= _nextAttackTime)
-                {
-                    //visiblePlayer.GetComponent<Health>()?.TakeDamage(damageAmount);
-                    //_nextAttackTime = Time.time + attackCooldown;
-                }
-            }
         }
-        else if (isChasing)
-        {
-            // STATE: JUST LOST PLAYER -> START SEARCHING
-            isChasing = false;
-            isSearching = true;
-            currentSearchTime = 5f;
-        }
-
-        if (isSearching)
-        {
-            Search();
-        }
-        else if (!isChasing)
+        else
         {
             Patrol();
         }
 
-        // ================================== ANIMATOR UPDATE ==================================
-        // Send the absolute value of the current velocity to the Animator's "Speed" parameter
-        if (anim != null)
+        // ================= UI =================
+        if (detectionSlider != null)
         {
-            anim.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
+            // Show / Hide
+            detectionSlider.gameObject.SetActive(detectionMeter > 0 || isAlerted);
+
+            // Value — always reflect real detectionMeter
+            detectionSlider.value = detectionMeter;
+
+            // 🎨 Color change
+            if (detectionSlider.fillRect != null)
+            {
+                Image fill = detectionSlider.fillRect.GetComponent<Image>();
+                float percent = detectionMeter / detectionTime;
+
+                if (percent < 0.5f)
+                    fill.color = Color.green;
+                else if (percent < 1f)
+                    fill.color = Color.yellow;
+                else
+                    fill.color = Color.red; // covers both fully detected AND alerted
+            }
         }
     }
 
-    void MoveToward(float targetX, float speed)//==================================move toward a specific x position (used for chasing)==================
+    void MoveToward(float targetX, float speed)
     {
         direction = (targetX > transform.position.x) ? 1 : -1;
         rb.linearVelocity = new Vector2(direction * speed, rb.linearVelocity.y);
         transform.localScale = new Vector3(direction, 1, 1);
     }
 
-    void Search()//==================================search for the player at the last known position==================
+    void Patrol()
     {
-        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-        currentSearchTime -= Time.deltaTime;
-
-        if (currentSearchTime <= 0)
-        {
-            isSearching = false;
-        }
-    }
-
-    void Patrol()//==================================patrol between two points==================
-    {
-        // 1. Use Mathf.Abs to only check horizontal distance (ignores if points are too high/low)
         if (Mathf.Abs(transform.position.x - currentPatrolTarget.position.x) < 0.5f)
         {
-            // Swap the target
             currentPatrolTarget = (currentPatrolTarget == pointA) ? pointB : pointA;
         }
 
-        // 2. Always move toward the CURRENT target
         direction = (currentPatrolTarget.position.x > transform.position.x) ? 1 : -1;
-
-        // 3. Apply velocity using WALK speed and flip the sprite
         rb.linearVelocity = new Vector2(direction * walkSpeed, rb.linearVelocity.y);
         transform.localScale = new Vector3(direction, 1, 1);
     }
 
-    GameObject GetVisiblePlayer()//==================================check if any player is visible==================
+    GameObject GetVisiblePlayer()
     {
         foreach (GameObject p in players)
         {
@@ -133,21 +135,17 @@ public class SimpleEnemy : MonoBehaviour
         return null;
     }
 
-    bool CanSeeTarget(Transform target) //==================================line of sight check==================
+    bool CanSeeTarget(Transform target)
     {
         float distance = Vector2.Distance(transform.position, target.position);
 
-        // 1. Is the player close enough?
         if (distance < range)
         {
-            // 2. Is the player IN FRONT of the enemy?
-            // Mathf.Sign returns 1 if positive (right), -1 if negative (left)
             float dirToPlayer = Mathf.Sign(target.position.x - transform.position.x);
-            float currentFacingDir = Mathf.Sign(transform.localScale.x);
+            float facingDir = Mathf.Sign(transform.localScale.x);
 
-            if (dirToPlayer == currentFacingDir)
+            if (dirToPlayer == facingDir)
             {
-                // 3. Is there a wall in the way?
                 RaycastHit2D hit = Physics2D.Linecast(transform.position, target.position, mask);
                 return hit.collider == null;
             }
@@ -155,23 +153,27 @@ public class SimpleEnemy : MonoBehaviour
         return false;
     }
 
-
-    private void OnDrawGizmosSelected()//==================================gizmos for patrol points and detection range==================
+    // ================= GAME OVER =================
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        // 1. Draw the detection range
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            Debug.Log("GAME OVER");
+            Time.timeScale = 0f;
+        }
+    }
+
+    // ================= GIZMOS =================
+    private void OnDrawGizmosSelected()
+    {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, range);
 
-        // 2. Draw the patrol points and a path line
         if (pointA != null && pointB != null)
         {
             Gizmos.color = Color.green;
-
-            // Draw little spheres at the exact point locations
             Gizmos.DrawSphere(pointA.position, 0.2f);
             Gizmos.DrawSphere(pointB.position, 0.2f);
-
-            // Draw a line connecting them so you can see the patrol path
             Gizmos.DrawLine(pointA.position, pointB.position);
         }
     }
