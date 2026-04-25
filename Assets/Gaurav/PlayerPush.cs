@@ -15,7 +15,6 @@ public class PlayerPush : MonoBehaviour
     {
         motherMovement = GetComponent<MotherMovement>();
 
-        // If no MotherMovement found, disable this script
         if (motherMovement == null)
         {
             Debug.LogWarning("PlayerPush requires MotherMovement — disabling.");

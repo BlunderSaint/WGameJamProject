@@ -32,11 +32,20 @@ public class SimpleEnemy : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
 
-        players = GameObject.FindGameObjectsWithTag("Player");
+        // Find both Mother and Daughter by their tags
+        GameObject mother = GameObject.FindGameObjectWithTag("Mother");
+        GameObject daughter = GameObject.FindGameObjectWithTag("Daughter");
+
+        // Add whichever ones exist in the scene
+        if (mother != null && daughter != null)
+            players = new GameObject[] { mother, daughter };
+        else if (mother != null)
+            players = new GameObject[] { mother };
+        else if (daughter != null)
+            players = new GameObject[] { daughter };
 
         currentPatrolTarget = pointA;
 
-        // 🔥 AUTO GET SLIDER FROM CHILD
         detectionSlider = GetComponentInChildren<Slider>();
 
         if (detectionSlider != null)
@@ -156,7 +165,7 @@ public class SimpleEnemy : MonoBehaviour
     // ================= GAME OVER =================
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Player"))
+        if (collision.gameObject.CompareTag("Daughter"))
         {
             Debug.Log("GAME OVER");
             Time.timeScale = 0f;

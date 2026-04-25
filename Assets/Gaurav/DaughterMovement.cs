@@ -20,6 +20,10 @@ public class DaughterMovement : MonoBehaviour
     public float climbSpeed = 3f;
     public LayerMask ladderLayer;
 
+    [Header("Rope")]
+    public float ropeClimbSpeed = 2.5f;
+    public LayerMask ropeLayer;
+
     [Header("Crouch")]
     public float crouchSpeed = 2f;
 
@@ -30,8 +34,13 @@ public class DaughterMovement : MonoBehaviour
     private float climbInput;
     private bool isGrounded;
     private bool isFacingRight = true;
+
     private bool isOnLadder = false;
     private bool isClimbing = false;
+
+    private bool isOnRope = false;
+    private bool isClimbingRope = false;
+
     private bool isCrouching = false;
 
     private float originalColliderHeight;
@@ -58,11 +67,11 @@ public class DaughterMovement : MonoBehaviour
         // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
-        // Ladder check
+        // ================= LADDER =================
         isOnLadder = Physics2D.OverlapCircle(transform.position, 0.2f, ladderLayer);
 
-        // Start climbing
-        if (isOnLadder && Mathf.Abs(climbInput) > 0)
+        // Start climbing ladder
+        if (isOnLadder && Mathf.Abs(climbInput) > 0 && !isClimbingRope)
         {
             isClimbing = true;
             IgnoreGroundColliders(true);
@@ -81,20 +90,23 @@ public class DaughterMovement : MonoBehaviour
         }
 
         // Allow entering ladder from top by pressing down
-        if (climbInput < 0 && !isOnLadder)
+        if (climbInput < 0 && !isOnLadder && !isOnRope && !isClimbingRope)
         {
+            IgnoreGroundColliders(true);
             RaycastHit2D ladderBelow = Physics2D.Raycast(transform.position, Vector2.down, 1f, ladderLayer);
             if (ladderBelow.collider != null)
             {
                 isClimbing = true;
-                IgnoreGroundColliders(true);
+            }
+            else
+            {
+                IgnoreGroundColliders(false);
             }
         }
 
-        // Stop climbing when leaving ladder
-        if (!isOnLadder && !isClimbing)
+        // Stop ladder climbing when leaving ladder
+        if (!isOnLadder && !isClimbing && !isClimbingRope)
         {
-            rb.gravityScale = 1f;
             IgnoreGroundColliders(false);
         }
 
@@ -106,8 +118,59 @@ public class DaughterMovement : MonoBehaviour
             IgnoreGroundColliders(false);
         }
 
-        // Crouch
-        if (Input.GetKeyDown(KeyCode.C) && isGrounded && !isClimbing)
+        // ================= ROPE =================
+        isOnRope = Physics2D.OverlapCircle(transform.position, 0.2f, ropeLayer);
+
+        // Grab rope when pressing up/down
+        if (isOnRope && Mathf.Abs(climbInput) > 0 && !isClimbing)
+        {
+            isClimbingRope = true;
+            IgnoreGroundColliders(true);
+        }
+
+        // Stop climbing rope if no rope above when going up
+        if (isClimbingRope && climbInput > 0)
+        {
+            RaycastHit2D ropeAbove = Physics2D.Raycast(transform.position, Vector2.up, 0.3f, ropeLayer);
+            if (ropeAbove.collider == null)
+            {
+                isClimbingRope = false;
+                rb.gravityScale = 1f;
+                IgnoreGroundColliders(false);
+            }
+        }
+
+        // Allow entering rope from top by pressing down
+        if (climbInput < 0 && !isOnRope && !isOnLadder && !isClimbing)
+        {
+            IgnoreGroundColliders(true);
+            RaycastHit2D ropeBelow = Physics2D.Raycast(transform.position, Vector2.down, 1f, ropeLayer);
+            if (ropeBelow.collider != null)
+            {
+                isClimbingRope = true;
+            }
+            else
+            {
+                IgnoreGroundColliders(false);
+            }
+        }
+
+        // Stop rope climbing when leaving rope
+        if (!isOnRope && !isClimbingRope && !isClimbing)
+        {
+            IgnoreGroundColliders(false);
+        }
+
+        // Restore when fully off rope going down
+        if (!isOnRope && isClimbingRope && rb.linearVelocity.y < -0.1f)
+        {
+            isClimbingRope = false;
+            rb.gravityScale = 1f;
+            IgnoreGroundColliders(false);
+        }
+
+        // ================= CROUCH =================
+        if (Input.GetKeyDown(KeyCode.C) && isGrounded && !isClimbing && !isClimbingRope)
         {
             isCrouching = true;
             SetCrouchCollider(true);
@@ -125,26 +188,30 @@ public class DaughterMovement : MonoBehaviour
             SetCrouchCollider(false);
         }
 
-        // Jump
-        if (Input.GetKeyDown(KeyCode.Space) && (isGrounded || isClimbing))
+        // ================= JUMP =================
+        if (Input.GetKeyDown(KeyCode.Space) && (isGrounded || isClimbing || isClimbingRope))
         {
             isCrouching = false;
             SetCrouchCollider(false);
             isClimbing = false;
+            isClimbingRope = false;
             rb.gravityScale = 1f;
             IgnoreGroundColliders(false);
             rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         }
 
         // Cut jump
-        if (Input.GetKeyUp(KeyCode.Space) && rb.linearVelocity.y > 0 && !isClimbing)
+        if (Input.GetKeyUp(KeyCode.Space) && rb.linearVelocity.y > 0 && !isClimbing && !isClimbingRope)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
         }
 
-        // Flip
-        if (moveInput > 0 && !isFacingRight) Flip();
-        else if (moveInput < 0 && isFacingRight) Flip();
+        // Flip — disabled on rope
+        if (!isClimbingRope)
+        {
+            if (moveInput > 0 && !isFacingRight) Flip();
+            else if (moveInput < 0 && isFacingRight) Flip();
+        }
     }
 
     void FixedUpdate()
@@ -152,7 +219,12 @@ public class DaughterMovement : MonoBehaviour
         if (isClimbing)
         {
             rb.gravityScale = 0f;
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, climbInput * climbSpeed);
+            rb.linearVelocity = new Vector2(0, climbInput * climbSpeed);
+        }
+        else if (isClimbingRope)
+        {
+            rb.gravityScale = 0f;
+            rb.linearVelocity = new Vector2(moveInput * 1f, climbInput * ropeClimbSpeed);
         }
         else
         {
