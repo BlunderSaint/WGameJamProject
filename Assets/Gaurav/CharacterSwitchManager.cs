@@ -5,7 +5,6 @@ public class CharacterSwitchManager : MonoBehaviour
 {
     public GameObject[] characters;
     public CinemachineCamera virtualCamera;
-
     private int currentIndex = 0;
 
     void Start()
@@ -24,7 +23,6 @@ public class CharacterSwitchManager : MonoBehaviour
     void SwitchCharacter()
     {
         currentIndex++;
-
         if (currentIndex >= characters.Length)
             currentIndex = 0;
 
@@ -36,14 +34,25 @@ public class CharacterSwitchManager : MonoBehaviour
         for (int i = 0; i < characters.Length; i++)
         {
             bool isActive = (i == index);
-            characters[i].GetComponent<PlayerMovement>().enabled = isActive;
+
+            // Try Mother
+            MotherMovement mother = characters[i].GetComponent<MotherMovement>();
+            if (mother != null) mother.enabled = isActive;
+
+            // Try Daughter
+            DaughterMovement daughter = characters[i].GetComponent<DaughterMovement>();
+            if (daughter != null) daughter.enabled = isActive;
+
+            // Disable push when not active
+            PlayerPush push = characters[i].GetComponent<PlayerPush>();
+            if (push != null) push.enabled = isActive;
         }
 
-        // 🎥 Camera follows new character
+        // Camera follows new character
         virtualCamera.Follow = characters[index].transform;
         virtualCamera.LookAt = characters[index].transform;
 
-        // 🔥 FORCE INSTANT SNAP (IMPORTANT)
+        // Force instant snap
         virtualCamera.ForceCameraPosition(
             characters[index].transform.position,
             Quaternion.identity
