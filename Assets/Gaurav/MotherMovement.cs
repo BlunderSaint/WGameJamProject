@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class MotherMovement : MonoBehaviour
 {
@@ -30,10 +30,14 @@ public class MotherMovement : MonoBehaviour
     private Rigidbody2D rb;
     private Collider2D playerCollider;
     private CapsuleCollider2D capsuleCollider;
+    private Animator animator;
+
     private float moveInput;
     private float climbInput;
     private bool isGrounded;
-    private bool isFacingRight = true;
+
+    // ✅ FIXED HERE
+    private bool isFacingRight = false;
 
     private bool isOnLadder = false;
     private bool isClimbing = false;
@@ -46,11 +50,21 @@ public class MotherMovement : MonoBehaviour
     private float originalColliderHeight;
     private float originalColliderOffset;
 
+    // 🔥 Animator Params
+    private static readonly int ParamIsWalk = Animator.StringToHash("isWalking");
+    private static readonly int ParamIsRun = Animator.StringToHash("isRunning");
+    private static readonly int ParamIsClimb = Animator.StringToHash("isClimbing");
+    private static readonly int ParamIsClimbRope = Animator.StringToHash("isClimbingRope");
+    private static readonly int ParamClimbSpeed = Animator.StringToHash("climbSpeed");
+    private static readonly int ParamIsCrouch = Animator.StringToHash("isCrouching");
+    private static readonly int ParamIsJump = Animator.StringToHash("isJumping");
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         playerCollider = GetComponent<Collider2D>();
         capsuleCollider = GetComponent<CapsuleCollider2D>();
+        animator = GetComponent<Animator>();
 
         if (capsuleCollider != null)
         {
@@ -64,20 +78,16 @@ public class MotherMovement : MonoBehaviour
         moveInput = Input.GetAxisRaw("Horizontal");
         climbInput = Input.GetAxisRaw("Vertical");
 
-        // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
-        // ================= LADDER =================
         isOnLadder = Physics2D.OverlapCircle(transform.position, 0.2f, ladderLayer);
 
-        // Start climbing ladder
         if (isOnLadder && Mathf.Abs(climbInput) > 0 && !isClimbingRope)
         {
             isClimbing = true;
             IgnoreGroundColliders(true);
         }
 
-        // Stop climbing if no ladder above when going up
         if (isClimbing && climbInput > 0)
         {
             RaycastHit2D ladderAbove = Physics2D.Raycast(transform.position, Vector2.up, 0.3f, ladderLayer);
@@ -89,7 +99,6 @@ public class MotherMovement : MonoBehaviour
             }
         }
 
-        // Allow entering ladder from top by pressing down
         if (climbInput < 0 && !isOnLadder && !isOnRope && !isClimbingRope)
         {
             IgnoreGroundColliders(true);
@@ -104,13 +113,11 @@ public class MotherMovement : MonoBehaviour
             }
         }
 
-        // Stop ladder climbing when leaving ladder
         if (!isOnLadder && !isClimbing && !isClimbingRope)
         {
             IgnoreGroundColliders(false);
         }
 
-        // Restore when fully off ladder going down
         if (!isOnLadder && isClimbing && rb.linearVelocity.y < -0.1f)
         {
             isClimbing = false;
@@ -118,17 +125,14 @@ public class MotherMovement : MonoBehaviour
             IgnoreGroundColliders(false);
         }
 
-        // ================= ROPE =================
         isOnRope = Physics2D.OverlapCircle(transform.position, 0.2f, ropeLayer);
 
-        // Grab rope when pressing up/down
         if (isOnRope && Mathf.Abs(climbInput) > 0 && !isClimbing)
         {
             isClimbingRope = true;
             IgnoreGroundColliders(true);
         }
 
-        // Stop climbing rope if no rope above when going up
         if (isClimbingRope && climbInput > 0)
         {
             RaycastHit2D ropeAbove = Physics2D.Raycast(transform.position, Vector2.up, 0.3f, ropeLayer);
@@ -140,7 +144,6 @@ public class MotherMovement : MonoBehaviour
             }
         }
 
-        // Allow entering rope from top by pressing down
         if (climbInput < 0 && !isOnRope && !isOnLadder && !isClimbing)
         {
             IgnoreGroundColliders(true);
@@ -155,13 +158,11 @@ public class MotherMovement : MonoBehaviour
             }
         }
 
-        // Stop rope climbing when leaving rope
         if (!isOnRope && !isClimbingRope && !isClimbing)
         {
             IgnoreGroundColliders(false);
         }
 
-        // Restore when fully off rope going down
         if (!isOnRope && isClimbingRope && rb.linearVelocity.y < -0.1f)
         {
             isClimbingRope = false;
@@ -169,49 +170,101 @@ public class MotherMovement : MonoBehaviour
             IgnoreGroundColliders(false);
         }
 
-        // ================= CROUCH =================
         if (Input.GetKeyDown(KeyCode.C) && isGrounded && !isClimbing && !isClimbingRope)
         {
-            isCrouching = true;
-            SetCrouchCollider(true);
-        }
-        if (Input.GetKeyUp(KeyCode.C))
-        {
-            isCrouching = false;
-            SetCrouchCollider(false);
+            isCrouching = !isCrouching;
+            SetCrouchCollider(isCrouching);
         }
 
-        // Cancel crouch if not grounded
         if (!isGrounded && isCrouching)
         {
             isCrouching = false;
             SetCrouchCollider(false);
         }
 
-        // ================= JUMP =================
         if (Input.GetKeyDown(KeyCode.Space) && (isGrounded || isClimbing || isClimbingRope))
         {
             isCrouching = false;
             SetCrouchCollider(false);
+
             isClimbing = false;
             isClimbingRope = false;
+
             rb.gravityScale = 1f;
             IgnoreGroundColliders(false);
+
             rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         }
 
-        // Cut jump
         if (Input.GetKeyUp(KeyCode.Space) && rb.linearVelocity.y > 0 && !isClimbing && !isClimbingRope)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
         }
 
-        // Flip � disabled on rope
+        // ✅ Flip (unchanged)
         if (!isClimbingRope)
         {
             if (moveInput > 0 && !isFacingRight) Flip();
             else if (moveInput < 0 && isFacingRight) Flip();
         }
+
+        UpdateAnimations();
+    }
+
+    void UpdateAnimations()
+    {
+        if (animator == null) return;
+
+        bool isMoving = Mathf.Abs(moveInput) > 0.1f;
+
+        bool jumping = !isGrounded && !isClimbing && !isClimbingRope;
+        animator.SetBool(ParamIsJump, jumping);
+
+        if (jumping)
+        {
+            animator.speed = 1f;
+
+            animator.SetBool(ParamIsWalk, false);
+            animator.SetBool(ParamIsRun, false);
+            animator.SetBool(ParamIsCrouch, false);
+            return;
+        }
+
+        animator.speed = 1f;
+
+        animator.SetBool(ParamIsClimb, isClimbing);
+        animator.SetBool(ParamIsClimbRope, isClimbingRope);
+
+        if (isClimbing || isClimbingRope)
+        {
+            float climbSpeedValue = Mathf.Abs(climbInput);
+            animator.SetFloat(ParamClimbSpeed, climbSpeedValue);
+
+            animator.speed = (climbSpeedValue > 0.1f) ? 1f : 0f;
+
+            animator.SetBool(ParamIsWalk, false);
+            animator.SetBool(ParamIsRun, false);
+            animator.SetBool(ParamIsCrouch, false);
+            return;
+        }
+
+        animator.SetBool(ParamIsCrouch, isCrouching);
+
+        if (isCrouching)
+        {
+            float crouchMove = Mathf.Abs(moveInput);
+            animator.SetFloat("crouchSpeed", crouchMove);
+
+            animator.SetBool(ParamIsWalk, false);
+            animator.SetBool(ParamIsRun, false);
+            return;
+        }
+
+        bool isRunning = isGrounded && isMoving && Input.GetKey(KeyCode.LeftShift);
+        bool isWalking = isGrounded && isMoving && !isRunning;
+
+        animator.SetBool(ParamIsRun, isRunning);
+        animator.SetBool(ParamIsWalk, isWalking);
     }
 
     void FixedUpdate()

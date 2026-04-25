@@ -56,6 +56,7 @@ public class DaughterMovement : MonoBehaviour
     private static readonly int ParamIsClimbRope = Animator.StringToHash("isClimbingRope");
     private static readonly int ParamClimbSpeed = Animator.StringToHash("climbSpeed");
     private static readonly int ParamIsCrouch = Animator.StringToHash("isCrouching");
+    private static readonly int ParamIsJump = Animator.StringToHash("isJumping");
 
     void Start()
     {
@@ -113,11 +114,10 @@ public class DaughterMovement : MonoBehaviour
             IgnoreGroundColliders(false);
         }
 
-        // ================= CROUCH =================
+        // ================= CROUCH (TOGGLE) =================
         if (Input.GetKeyDown(KeyCode.C) && isGrounded)
         {
-            isCrouching = !isCrouching; // 🔥 TOGGLE
-
+            isCrouching = !isCrouching;
             SetCrouchCollider(isCrouching);
         }
 
@@ -158,6 +158,26 @@ public class DaughterMovement : MonoBehaviour
 
         bool isMoving = Mathf.Abs(moveInput) > 0.1f;
 
+        // ================= JUMP (FIXED CLEAN) =================
+        bool jumping = !isGrounded && !isClimbing && !isClimbingRope;
+
+        // Always update jump state
+        animator.SetBool(ParamIsJump, jumping);
+
+        // DO NOT freeze animation
+        if (jumping)
+        {
+            animator.speed = 1f;
+
+            animator.SetBool(ParamIsWalk, false);
+            animator.SetBool(ParamIsRun, false);
+            animator.SetBool(ParamIsCrouch, false);
+            return;
+        }
+
+        // Reset speed
+        animator.speed = 1f;
+
         // ================= CLIMB =================
         animator.SetBool(ParamIsClimb, isClimbing);
         animator.SetBool(ParamIsClimbRope, isClimbingRope);
@@ -165,10 +185,8 @@ public class DaughterMovement : MonoBehaviour
         if (isClimbing || isClimbingRope)
         {
             float climbSpeedValue = Mathf.Abs(climbInput);
-
             animator.SetFloat(ParamClimbSpeed, climbSpeedValue);
 
-            // Freeze climb when no input
             animator.speed = (climbSpeedValue > 0.1f) ? 1f : 0f;
 
             animator.SetBool(ParamIsWalk, false);
@@ -183,8 +201,6 @@ public class DaughterMovement : MonoBehaviour
         if (isCrouching)
         {
             float crouchMove = Mathf.Abs(moveInput);
-
-            // This controls animation playback
             animator.SetFloat("crouchSpeed", crouchMove);
 
             animator.SetBool(ParamIsWalk, false);
@@ -193,8 +209,6 @@ public class DaughterMovement : MonoBehaviour
         }
 
         // ================= NORMAL =================
-        animator.speed = 1f;
-
         bool isRunning = isGrounded && isMoving && Input.GetKey(KeyCode.LeftShift);
         bool isWalking = isGrounded && isMoving && !isRunning;
 
