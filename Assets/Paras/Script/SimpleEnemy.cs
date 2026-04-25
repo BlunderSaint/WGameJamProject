@@ -9,8 +9,7 @@ public class SimpleEnemy : MonoBehaviour
     public float range = 8f;
     public LayerMask mask;
 
-    public Transform wallCheck;
-    public Transform ledgeCheck;
+
 
     [Header("Attack Settings")]
     public int damageAmount = 10;
