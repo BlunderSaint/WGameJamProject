@@ -88,12 +88,14 @@ public class DaughterMovement : MonoBehaviour
         if (isOnLadder && Mathf.Abs(climbInput) > 0 && !isClimbingRope)
         {
             isClimbing = true;
+            transform.position = new Vector3(transform.position.x, transform.position.y, -1f);
             IgnoreGroundColliders(true);
         }
 
         if (!isOnLadder && isClimbing)
         {
             isClimbing = false;
+            transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
             rb.gravityScale = 1f;
             IgnoreGroundColliders(false);
         }
@@ -217,6 +219,7 @@ public class DaughterMovement : MonoBehaviour
         {
             rb.gravityScale = 0f;
             rb.linearVelocity = new Vector2(0, climbInput * climbSpeed);
+             // Ensure character is in front of ladder
         }
         else if (isClimbingRope)
         {

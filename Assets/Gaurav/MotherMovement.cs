@@ -125,6 +125,7 @@ public class MotherMovement : MonoBehaviour
             if (ladderBelow.collider != null)
             {
                 isClimbing = true;
+                transform.position = new Vector3(transform.position.x, transform.position.y, -1f);
             }
             else
             {
@@ -140,6 +141,7 @@ public class MotherMovement : MonoBehaviour
         if (!isOnLadder && isClimbing && rb.linearVelocity.y < -0.1f)
         {
             isClimbing = false;
+            transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
             rb.gravityScale = 1f;
             IgnoreGroundColliders(false);
         }
