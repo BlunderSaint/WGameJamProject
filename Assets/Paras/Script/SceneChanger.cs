@@ -16,6 +16,10 @@ public class LevelPortal : MonoBehaviour
 
     private bool isTransitioning = false;
 
+    // Track who is inside the portal zone
+    private bool motherInZone = false;
+    private bool daughterInZone = false;
+
     void Awake()
     {
         DontDestroyOnLoad(gameObject);
@@ -23,10 +27,44 @@ public class LevelPortal : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Check if the collider has either the Mother OR Daughter tag
-        if ((collision.CompareTag("Mother") || collision.CompareTag("Daughter")) && !isTransitioning)
+        // 1. Mark who just stepped in
+        if (collision.CompareTag("Mother")) motherInZone = true;
+        if (collision.CompareTag("Daughter")) daughterInZone = true;
+
+        // 2. See if we have the right people to leave
+        CheckTransition();
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        // 1. If someone steps off the exit, mark them as gone
+        if (collision.CompareTag("Mother")) motherInZone = false;
+        if (collision.CompareTag("Daughter")) daughterInZone = false;
+    }
+
+    private void CheckTransition()
+    {
+        // Don't do anything if we are already changing scenes
+        if (isTransitioning) return;
+
+        // Get the name of the current level
+        string currentLevelName = SceneManager.GetActiveScene().name;
+
+        if (currentLevelName == "Level4")
         {
-            StartCoroutine(TransitionSequence());
+            // If Level 4: We absolutely need BOTH characters in the zone
+            if (motherInZone && daughterInZone)
+            {
+                StartCoroutine(TransitionSequence());
+            }
+        }
+        else
+        {
+            // If ANY OTHER LEVEL: Either one triggers it
+            if (motherInZone || daughterInZone)
+            {
+                StartCoroutine(TransitionSequence());
+            }
         }
     }
 

@@ -5,8 +5,8 @@ using TMPro; // Required for TextMeshPro
 public class LevelIntroDialogue : MonoBehaviour
 {
     [Header("UI Elements")]
-    public GameObject dialoguePanel;     // The background panel
-    public TextMeshProUGUI dialogueText; // The text component
+    public GameObject dialoguePanel;
+    public TextMeshProUGUI dialogueText;
 
     [Header("Dialogue Content")]
     [TextArea(3, 10)]
@@ -19,9 +19,11 @@ public class LevelIntroDialogue : MonoBehaviour
 
     void Start()
     {
-        // Kick off the dialogue as soon as the level starts
         if (lines.Length > 0)
         {
+            // 1. FREEZE THE GAME
+            Time.timeScale = 0f;
+
             dialoguePanel.SetActive(true);
             _index = 0;
             _typingCoroutine = StartCoroutine(TypeLine());
@@ -30,22 +32,19 @@ public class LevelIntroDialogue : MonoBehaviour
 
     void Update()
     {
-        // Listen for the skip/advance button (Space, Enter, or Mouse Click)
+        // Remember: Input still works even when timeScale is 0!
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
         {
-            // Only trigger if the panel is actually open
             if (dialoguePanel.activeSelf)
             {
                 if (_isTyping)
                 {
-                    // SKIP TYPING: Instantly fill the rest of the sentence
                     StopCoroutine(_typingCoroutine);
                     dialogueText.text = lines[_index];
                     _isTyping = false;
                 }
                 else
                 {
-                    // ADVANCE: Go to the next line, or close if finished
                     NextLine();
                 }
             }
@@ -57,11 +56,12 @@ public class LevelIntroDialogue : MonoBehaviour
         _isTyping = true;
         dialogueText.text = string.Empty;
 
-        // Type out the characters one by one
         foreach (char c in lines[_index].ToCharArray())
         {
             dialogueText.text += c;
-            yield return new WaitForSeconds(typingSpeed);
+
+            // 2. CRITICAL FIX: Use Realtime so the typewriter keeps working while the game is paused!
+            yield return new WaitForSecondsRealtime(typingSpeed);
         }
 
         _isTyping = false;
@@ -76,11 +76,9 @@ public class LevelIntroDialogue : MonoBehaviour
         }
         else
         {
-            // End of dialogue reached, hide the UI
+            // 3. UNFREEZE THE GAME
             dialoguePanel.SetActive(false);
-
-            // You can also add code here to re-enable player movement 
-            // if you locked it during the intro!
+            Time.timeScale = 1f;
         }
     }
 }
