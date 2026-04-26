@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 public class SimpleEnemy : MonoBehaviour
 {
@@ -28,8 +29,17 @@ public class SimpleEnemy : MonoBehaviour
     public Transform pointB;
     private Transform currentPatrolTarget;
 
+    [Header("Health")]
+    public int maxHealth = 3;
+    private int currentHealth;
+    public SpriteRenderer sr;
+
+    private bool canDamage = true;
+
     void Start()
     {
+
+        currentHealth = maxHealth;
         rb = GetComponent<Rigidbody2D>();
 
         // Find both Mother and Daughter by their tags
@@ -57,6 +67,36 @@ public class SimpleEnemy : MonoBehaviour
         }
     }
 
+    IEnumerator FlashRed()
+    {
+        if (sr == null) yield break;  // safety check
+
+        Color originalColor = sr.color;
+        sr.color = Color.red;
+        yield return new WaitForSeconds(0.2f);
+        sr.color = originalColor;
+    }
+
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+        Debug.Log($"Enemy hit! HP left: {currentHealth}");
+
+        if (currentHealth <= 0)
+        {
+            Die();  // destroy immediately — coroutine never runs
+        }
+        else
+        {
+            StartCoroutine(FlashRed());  // ✅ only flash if still alive
+        }
+    }
+
+    void Die()
+    {
+        Debug.Log("Enemy Died!");
+        Destroy(gameObject);
+    }
     void Update()
     {
         GameObject visiblePlayer = GetVisiblePlayer();
@@ -170,6 +210,25 @@ public class SimpleEnemy : MonoBehaviour
             Debug.Log("GAME OVER");
             Time.timeScale = 0f;
         }
+
+
+        if (collision.gameObject.CompareTag("Mother") && canDamage)
+        {
+            PlayerHealth health = collision.gameObject.GetComponent<PlayerHealth>();
+            if (health != null)
+            {
+                health.TakeDamage(1);
+                StartCoroutine(DamageCooldown());  // prevent instant 4x damage
+            }
+        }
+
+    }
+
+    IEnumerator DamageCooldown()
+    {
+        canDamage = false;
+        yield return new WaitForSeconds(0.8f);  // damage every 0.8s while touching
+        canDamage = true;
     }
 
     // ================= GIZMOS =================

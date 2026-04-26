@@ -2,10 +2,8 @@
 
 public class MotherMovement : MonoBehaviour
 {
-
     public GameObject chapplePrefab;
     public Transform throwPoint;
-
 
     [Header("Movement")]
     public float walkSpeed = 5f;
@@ -41,15 +39,16 @@ public class MotherMovement : MonoBehaviour
     private float climbInput;
     private bool isGrounded;
 
-    // ✅ FIXED HERE
-    private bool isFacingRight = false;
+    // --- Attack Cooldown Logic ---
+    // ✅ CHANGED: Set cooldown to 1 second and fixed start time
+    private float attackCooldown = 1.0f;
+    private float lastAttackTime = -1.0f;
 
+    private bool isFacingRight = false;
     private bool isOnLadder = false;
     private bool isClimbing = false;
-
     private bool isOnRope = false;
     private bool isClimbingRope = false;
-
     private bool isCrouching = false;
     private bool isAttacking = false;
 
@@ -86,21 +85,22 @@ public class MotherMovement : MonoBehaviour
         climbInput = Input.GetAxisRaw("Vertical");
 
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-
         isOnLadder = Physics2D.OverlapCircle(transform.position, 0.2f, ladderLayer);
 
-
-        // ================= ATTACK INPUT =================
-        if (Input.GetMouseButtonDown(0) && !isAttacking)
+        // ✅ ATTACK LOGIC: Shoots after 0.8s, 1s total cooldown
+        if (Input.GetMouseButtonDown(0) && !isAttacking && Time.time >= lastAttackTime + attackCooldown)
         {
             isAttacking = true;
-            Invoke(nameof(ThrowChapple), .8f);
+            lastAttackTime = Time.time;
 
-            Invoke(nameof(ResetAttack), 0.6f); // match your attack animation length
+            // Prefab shoots after 0.8s delay
+            Invoke(nameof(ThrowChapple), 0.8f);
 
+            // Resets attack status after 1.0s
+            Invoke(nameof(ResetAttack), attackCooldown);
         }
 
-
+        // --- LADDER LOGIC ---
         if (isOnLadder && Mathf.Abs(climbInput) > 0 && !isClimbingRope)
         {
             isClimbing = true;
@@ -144,6 +144,7 @@ public class MotherMovement : MonoBehaviour
             IgnoreGroundColliders(false);
         }
 
+        // --- ROPE LOGIC ---
         isOnRope = Physics2D.OverlapCircle(transform.position, 0.2f, ropeLayer);
 
         if (isOnRope && Mathf.Abs(climbInput) > 0 && !isClimbing)
@@ -189,6 +190,7 @@ public class MotherMovement : MonoBehaviour
             IgnoreGroundColliders(false);
         }
 
+        // --- CROUCH & JUMP LOGIC ---
         if (Input.GetKeyDown(KeyCode.C) && isGrounded && !isClimbing && !isClimbingRope)
         {
             isCrouching = !isCrouching;
@@ -205,13 +207,10 @@ public class MotherMovement : MonoBehaviour
         {
             isCrouching = false;
             SetCrouchCollider(false);
-
             isClimbing = false;
             isClimbingRope = false;
-
             rb.gravityScale = 1f;
             IgnoreGroundColliders(false);
-
             rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         }
 
@@ -220,7 +219,7 @@ public class MotherMovement : MonoBehaviour
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
         }
 
-        // ✅ Flip (unchanged)
+        // --- FLIP LOGIC ---
         if (!isClimbingRope)
         {
             if (moveInput > 0 && !isFacingRight) Flip();
@@ -230,8 +229,6 @@ public class MotherMovement : MonoBehaviour
         UpdateAnimations();
     }
 
-
-
     void ResetAttack()
     {
         isAttacking = false;
@@ -240,9 +237,7 @@ public class MotherMovement : MonoBehaviour
     void ThrowChapple()
     {
         GameObject chapple = Instantiate(chapplePrefab, throwPoint.position, Quaternion.identity);
-
         ChappleProjectile proj = chapple.GetComponent<ChappleProjectile>();
-
         float dir = isFacingRight ? 1f : -1f;
         proj.SetDirection(new Vector2(dir, 0f));
     }
@@ -254,20 +249,26 @@ public class MotherMovement : MonoBehaviour
         bool isMoving = Mathf.Abs(moveInput) > 0.1f;
 
         // ================= ATTACK — highest priority =================
-        animator.SetBool(ParamIsAttack, isAttacking);
-
         if (isAttacking)
         {
+            animator.SetBool(ParamIsAttack, true);
+
             animator.SetBool(ParamIsWalk, false);
             animator.SetBool(ParamIsRun, false);
             animator.SetBool(ParamIsJump, false);
             animator.SetBool(ParamIsCrouch, false);
             animator.SetBool(ParamIsClimb, false);
             animator.SetBool(ParamIsClimbRope, false);
+
+            StartCoroutine(ResetAttackParamNextFrame());
             return;
         }
+        else
+        {
+            animator.SetBool(ParamIsAttack, false);
+        }
 
-        // ================= JUMP — always first =================
+        // ================= JUMP =================
         bool jumping = !isGrounded && !isClimbing && !isClimbingRope && rb.linearVelocity.y > 0.1f;
         animator.SetBool(ParamIsJump, jumping);
 
@@ -311,12 +312,18 @@ public class MotherMovement : MonoBehaviour
             return;
         }
 
-        // ================= NORMAL =================
+        // ================= NORMAL MOVEMENT =================
         bool isRunning = isGrounded && isMoving && Input.GetKey(KeyCode.LeftShift);
         bool isWalking = isGrounded && isMoving && !isRunning;
 
         animator.SetBool(ParamIsRun, isRunning);
         animator.SetBool(ParamIsWalk, isWalking);
+    }
+
+    private System.Collections.IEnumerator ResetAttackParamNextFrame()
+    {
+        yield return null;
+        animator.SetBool(ParamIsAttack, false);
     }
 
     void FixedUpdate()
@@ -395,4 +402,3 @@ public class MotherMovement : MonoBehaviour
         }
     }
 }
-

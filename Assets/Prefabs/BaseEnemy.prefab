@@ -618,7 +618,7 @@ GameObject:
   - component: {fileID: 8517657183638093901}
   m_Layer: 0
   m_Name: BaseEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -657,11 +657,13 @@ MonoBehaviour:
   range: 10
   mask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   detectionTime: 2
-  detectionSlider: {fileID: 0}
+  detectionSlider: {fileID: 5321112720048518503}
   pointA: {fileID: 0}
   pointB: {fileID: 0}
+  maxHealth: 3
+  sr: {fileID: 2930273484997122138}
 --- !u!50 &1735691518168649979
 Rigidbody2D:
   serializedVersion: 5
