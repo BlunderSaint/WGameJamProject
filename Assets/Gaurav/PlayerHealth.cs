@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-
+using UnityEngine.SceneManagement;
 public class PlayerHealth : MonoBehaviour
 {
     [Header("Health")]
@@ -119,6 +119,6 @@ public class PlayerHealth : MonoBehaviour
 
     void Die()
     {
-        Time.timeScale = 0f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

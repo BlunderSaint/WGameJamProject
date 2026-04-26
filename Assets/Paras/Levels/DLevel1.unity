@@ -2347,6 +2347,10 @@ PrefabInstance:
       propertyPath: pointB
       value: 
       objectReference: {fileID: 655963749}
+    - target: {fileID: 6242352314366936700, guid: abe856d81d78f9e49a5374a17e8a845d, type: 3}
+      propertyPath: currentScene
+      value: DLevel1
+      objectReference: {fileID: 0}
     - target: {fileID: 7955885855562416694, guid: abe856d81d78f9e49a5374a17e8a845d, type: 3}
       propertyPath: m_Name
       value: BaseEnemy
@@ -3006,6 +3010,10 @@ PrefabInstance:
       propertyPath: pointB
       value: 
       objectReference: {fileID: 200383584}
+    - target: {fileID: 6242352314366936700, guid: abe856d81d78f9e49a5374a17e8a845d, type: 3}
+      propertyPath: currentScene
+      value: DLevel1
+      objectReference: {fileID: 0}
     - target: {fileID: 7955885855562416694, guid: abe856d81d78f9e49a5374a17e8a845d, type: 3}
       propertyPath: m_Name
       value: BaseEnemy (1)

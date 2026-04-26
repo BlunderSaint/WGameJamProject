@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using UnityEngine.SceneManagement;
+
 
 public class SimpleEnemy : MonoBehaviour
 {
@@ -28,6 +30,7 @@ public class SimpleEnemy : MonoBehaviour
     public Transform pointA;
     public Transform pointB;
     private Transform currentPatrolTarget;
+    public string currentScene;
 
     [Header("Health")]
     public int maxHealth = 3;
@@ -219,7 +222,7 @@ public class SimpleEnemy : MonoBehaviour
 
         if (collision.gameObject.CompareTag("Daughter"))
         {
-            Time.timeScale = 0f; // Game Over
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
 

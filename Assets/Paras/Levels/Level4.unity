@@ -57551,6 +57551,10 @@ PrefabInstance:
       value: 72
       objectReference: {fileID: 0}
     - target: {fileID: 6242352314366936700, guid: abe856d81d78f9e49a5374a17e8a845d, type: 3}
+      propertyPath: currentScene
+      value: Level4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6242352314366936700, guid: abe856d81d78f9e49a5374a17e8a845d, type: 3}
       propertyPath: detectionSlider
       value: 
       objectReference: {fileID: 1779925017}
