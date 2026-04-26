@@ -3,7 +3,7 @@
 //public class DialogueManager : MonoBehaviour
 //{
 //    [Header("Dialogue Settings")]
-//    public string speakerName = "Rogue";
+//    public string speakerName = "Daughter";
 //    [TextArea(3, 10)]
 //    public string[] dialogueLines;
 

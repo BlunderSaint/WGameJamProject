@@ -115,7 +115,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 5
   m_MaskInteraction: 0
   m_Sprite: {fileID: 2313463732811680064, guid: d3aea88a95a6f3f448b85ca9107f6e39, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -206,7 +206,7 @@ MonoBehaviour:
   walkSpeed: 5
   runSpeed: 8
   airControl: 0.5
-  jumpForce: 7
+  jumpForce: 9
   jumpCutMultiplier: 0.5
   groundCheck: {fileID: 9117805126389302585}
   groundCheckRadius: 0.2

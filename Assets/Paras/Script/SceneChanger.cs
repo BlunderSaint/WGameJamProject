@@ -23,8 +23,8 @@ public class LevelPortal : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Simple Layer check
-        if (((1 << collision.gameObject.layer) & playerLayer) != 0 && !isTransitioning)
+        // Check if the collider has either the Mother OR Daughter tag
+        if ((collision.CompareTag("Mother") || collision.CompareTag("Daughter")) && !isTransitioning)
         {
             StartCoroutine(TransitionSequence());
         }
