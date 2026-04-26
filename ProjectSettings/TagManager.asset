@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Daughter
   - Mother
+  - Enemy
   layers:
   - Default
   - TransparentFX

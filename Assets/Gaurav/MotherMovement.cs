@@ -2,6 +2,11 @@
 
 public class MotherMovement : MonoBehaviour
 {
+
+    public GameObject chapplePrefab;
+    public Transform throwPoint;
+
+
     [Header("Movement")]
     public float walkSpeed = 5f;
     public float runSpeed = 8f;
@@ -89,7 +94,10 @@ public class MotherMovement : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && !isAttacking)
         {
             isAttacking = true;
+            Invoke(nameof(ThrowChapple), .8f);
+
             Invoke(nameof(ResetAttack), 0.6f); // match your attack animation length
+
         }
 
 
@@ -229,7 +237,15 @@ public class MotherMovement : MonoBehaviour
         isAttacking = false;
     }
 
+    void ThrowChapple()
+    {
+        GameObject chapple = Instantiate(chapplePrefab, throwPoint.position, Quaternion.identity);
 
+        ChappleProjectile proj = chapple.GetComponent<ChappleProjectile>();
+
+        float dir = isFacingRight ? 1f : -1f;
+        proj.SetDirection(new Vector2(dir, 0f));
+    }
 
     void UpdateAnimations()
     {
