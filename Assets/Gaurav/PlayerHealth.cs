@@ -69,9 +69,11 @@ public class PlayerHealth : MonoBehaviour
         if (rb != null)
         {
             // 🛠️ FIX 2: Stop any Coroutines that might reset movement prematurely
-            StopCoroutine(nameof(KnockbackTimer));
+            //StopCoroutine(nameof(KnockbackTimer));
 
             float xDir = (transform.position.x > enemyPosition.x) ? 1f : -1f;
+
+
             Vector2 knockbackDirection = new Vector2(xDir, 0f);
 
             // 🛠️ FIX 3: Force velocity to zero so the impulse is pure
@@ -81,16 +83,16 @@ public class PlayerHealth : MonoBehaviour
             rb.AddForce(knockbackDirection * knockbackForce, ForceMode2D.Impulse);
 
             // Start the timer that tells the movement script to "Wait"
-            StartCoroutine(KnockbackTimer());
+            //StartCoroutine(KnockbackTimer());
         }
     }
 
-    private IEnumerator KnockbackTimer()
-    {
-        isBeingKnockedBack = true;
-        yield return new WaitForSeconds(knockbackDuration);
-        isBeingKnockedBack = false;
-    }
+    //private IEnumerator KnockbackTimer()
+    //{
+    //    isBeingKnockedBack = true;
+    //    yield return new WaitForSeconds(knockbackDuration);
+    //    isBeingKnockedBack = false;
+    //}
 
     // This public bool is used by MotherMovement.cs
     public bool IsKnockedBack() => isBeingKnockedBack;

@@ -11537,6 +11537,7 @@ MonoBehaviour:
   - After those thugs nabbed me, I don't remember anything...
   - In anycase, they have certainly made a mistake by underestimating me
   - by not  restraining me.. Time to get out of here.
+  - (A-D to move sideways, space to jump, c to crouch, shift to sprint)
   typingSpeed: 0.04
 --- !u!114 &1568233486
 MonoBehaviour:
