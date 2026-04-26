@@ -43,9 +43,8 @@ public class CharacterSwitchManager : MonoBehaviour
             DaughterMovement daughter = characters[i].GetComponent<DaughterMovement>();
             if (daughter != null) daughter.enabled = isActive;
 
-            // Disable push when not active
-            PlayerPush push = characters[i].GetComponent<PlayerPush>();
-            if (push != null) push.enabled = isActive;
+          
+          
         }
 
         // Camera follows new character

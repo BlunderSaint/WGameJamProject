@@ -10,6 +10,14 @@ public class PlayerHealth : MonoBehaviour
     private SpriteRenderer sr;
     private bool isDead = false;
 
+    [Header("Knockback")]
+    public float knockbackForce = 20f; // 💥 20 is usually a good "punchy" value for Impulse
+    private Rigidbody2D rb;
+
+    // We need a small timer to stop the PlayerMovement script from fighting the knockback
+    public float knockbackDuration = 0.2f;
+    private bool isBeingKnockedBack = false;
+
     [Header("UI")]
     public Slider healthSlider;
 
@@ -17,25 +25,33 @@ public class PlayerHealth : MonoBehaviour
     {
         currentHealth = maxHealth;
         sr = GetComponentInChildren<SpriteRenderer>();
+        rb = GetComponent<Rigidbody2D>();
+
+        // 🛠️ FIX 1: Ensure Rigidbody is set to Dynamic and Collision is Continuous
+        if (rb != null)
+        {
+            rb.bodyType = RigidbodyType2D.Dynamic;
+            rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        }
 
         healthSlider = GetComponentInChildren<Slider>();
-
         if (healthSlider != null)
         {
             healthSlider.minValue = 0;
             healthSlider.maxValue = maxHealth;
-            healthSlider.value = maxHealth;   // start full
+            healthSlider.value = maxHealth;
         }
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, Vector2 enemyPosition)
     {
         if (isDead) return;
 
         currentHealth -= damage;
-        Debug.Log($"Mother hit! HP left: {currentHealth}");
+        UpdateSlider();
 
-        UpdateSlider();  // 🔄 update UI on every hit
+        // 💥 APPLY KNOCKBACK
+        ApplyKnockback(enemyPosition);
 
         if (currentHealth <= 0)
         {
@@ -48,39 +64,59 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    private void ApplyKnockback(Vector2 enemyPosition)
+    {
+        if (rb != null)
+        {
+            // 🛠️ FIX 2: Stop any Coroutines that might reset movement prematurely
+            StopCoroutine(nameof(KnockbackTimer));
+
+            float xDir = (transform.position.x > enemyPosition.x) ? 1f : -1f;
+            Vector2 knockbackDirection = new Vector2(xDir, 0f);
+
+            // 🛠️ FIX 3: Force velocity to zero so the impulse is pure
+            rb.linearVelocity = Vector2.zero;
+
+            // Apply the force
+            rb.AddForce(knockbackDirection * knockbackForce, ForceMode2D.Impulse);
+
+            // Start the timer that tells the movement script to "Wait"
+            StartCoroutine(KnockbackTimer());
+        }
+    }
+
+    private IEnumerator KnockbackTimer()
+    {
+        isBeingKnockedBack = true;
+        yield return new WaitForSeconds(knockbackDuration);
+        isBeingKnockedBack = false;
+    }
+
+    // This public bool is used by MotherMovement.cs
+    public bool IsKnockedBack() => isBeingKnockedBack;
+
     void UpdateSlider()
     {
         if (healthSlider == null) return;
-
         healthSlider.value = currentHealth;
-
-        // 🎨 Color changes based on HP remaining
         if (healthSlider.fillRect != null)
         {
             Image fill = healthSlider.fillRect.GetComponent<Image>();
             float percent = (float)currentHealth / maxHealth;
-
-            if (percent > 0.5f)
-                fill.color = Color.green;
-            else if (percent > 0.25f)
-                fill.color = Color.yellow;
-            else
-                fill.color = Color.red;
+            fill.color = percent > 0.5f ? Color.green : (percent > 0.25f ? Color.yellow : Color.red);
         }
     }
 
     IEnumerator FlashRed()
     {
         if (sr == null) yield break;
-        Color original = sr.color;
         sr.color = Color.red;
-        yield return new WaitForSeconds(0.2f);
-        sr.color = original;
+        yield return new WaitForSeconds(0.15f);
+        sr.color = Color.white;
     }
 
     void Die()
     {
-        Debug.Log("Mother Died! GAME OVER");
         Time.timeScale = 0f;
     }
 }

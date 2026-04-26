@@ -202,33 +202,25 @@ public class SimpleEnemy : MonoBehaviour
         return false;
     }
 
-    // ================= GAME OVER =================
+   
+    // Inside SimpleEnemy.cs
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Daughter"))
-        {
-            Debug.Log("GAME OVER");
-            Time.timeScale = 0f;
-        }
-
-
-        if (collision.gameObject.CompareTag("Mother") && canDamage)
+        if (collision.gameObject.CompareTag("Mother"))
         {
             PlayerHealth health = collision.gameObject.GetComponent<PlayerHealth>();
             if (health != null)
             {
-                health.TakeDamage(1);
-                StartCoroutine(DamageCooldown());  // prevent instant 4x damage
+                // ✅ Damage and Knockback happen INSTANTLY
+                health.TakeDamage(1, transform.position);
             }
         }
 
-    }
-
-    IEnumerator DamageCooldown()
-    {
-        canDamage = false;
-        yield return new WaitForSeconds(0.8f);  // damage every 0.8s while touching
-        canDamage = true;
+        if (collision.gameObject.CompareTag("Daughter"))
+        {
+            Time.timeScale = 0f; // Game Over
+        }
     }
 
     // ================= GIZMOS =================
