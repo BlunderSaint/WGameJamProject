@@ -158,16 +158,31 @@ public class DaughterMovement : MonoBehaviour
 
         bool isMoving = Mathf.Abs(moveInput) > 0.1f;
 
-        // ================= JUMP (FIXED CLEAN) =================
+        // ================= JUMP — always checked first =================
         bool jumping = !isGrounded && !isClimbing && !isClimbingRope;
 
-        // Always update jump state
         animator.SetBool(ParamIsJump, jumping);
 
-        // DO NOT freeze animation
         if (jumping)
         {
             animator.speed = 1f;
+            animator.SetBool(ParamIsWalk, false);
+            animator.SetBool(ParamIsRun, false);
+            animator.SetBool(ParamIsCrouch, false);
+            animator.SetBool(ParamIsClimb, false);
+            animator.SetBool(ParamIsClimbRope, false);
+            return;
+        }
+
+        // ================= CLIMB =================
+        animator.SetBool(ParamIsClimb, isClimbing);
+        animator.SetBool(ParamIsClimbRope, isClimbingRope);
+
+        if (isClimbing || isClimbingRope)
+        {
+            float climbSpeedValue = Mathf.Abs(climbInput);
+            animator.SetFloat(ParamClimbSpeed, climbSpeedValue);
+            animator.speed = (climbSpeedValue > 0.1f) ? 1f : 0f;
 
             animator.SetBool(ParamIsWalk, false);
             animator.SetBool(ParamIsRun, false);
@@ -178,31 +193,12 @@ public class DaughterMovement : MonoBehaviour
         // Reset speed
         animator.speed = 1f;
 
-        // ================= CLIMB =================
-        animator.SetBool(ParamIsClimb, isClimbing);
-        animator.SetBool(ParamIsClimbRope, isClimbingRope);
-
-        if (isClimbing || isClimbingRope)
-        {
-            float climbSpeedValue = Mathf.Abs(climbInput);
-            animator.SetFloat(ParamClimbSpeed, climbSpeedValue);
-
-            animator.speed = (climbSpeedValue > 0.1f) ? 1f : 0f;
-
-            animator.SetBool(ParamIsWalk, false);
-            animator.SetBool(ParamIsRun, false);
-            animator.SetBool(ParamIsCrouch, false);
-            return;
-        }
-
         // ================= CROUCH =================
         animator.SetBool(ParamIsCrouch, isCrouching);
 
         if (isCrouching)
         {
-            float crouchMove = Mathf.Abs(moveInput);
-            animator.SetFloat("crouchSpeed", crouchMove);
-
+            animator.SetFloat("crouchSpeed", Mathf.Abs(moveInput));
             animator.SetBool(ParamIsWalk, false);
             animator.SetBool(ParamIsRun, false);
             return;
@@ -215,7 +211,6 @@ public class DaughterMovement : MonoBehaviour
         animator.SetBool(ParamIsRun, isRunning);
         animator.SetBool(ParamIsWalk, isWalking);
     }
-
     void FixedUpdate()
     {
         if (isClimbing)

@@ -46,6 +46,7 @@ public class MotherMovement : MonoBehaviour
     private bool isClimbingRope = false;
 
     private bool isCrouching = false;
+    private bool isAttacking = false;
 
     private float originalColliderHeight;
     private float originalColliderOffset;
@@ -58,6 +59,7 @@ public class MotherMovement : MonoBehaviour
     private static readonly int ParamClimbSpeed = Animator.StringToHash("climbSpeed");
     private static readonly int ParamIsCrouch = Animator.StringToHash("isCrouching");
     private static readonly int ParamIsJump = Animator.StringToHash("isJumping");
+    private static readonly int ParamIsAttack = Animator.StringToHash("isAttacking");
 
     void Start()
     {
@@ -81,6 +83,15 @@ public class MotherMovement : MonoBehaviour
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
         isOnLadder = Physics2D.OverlapCircle(transform.position, 0.2f, ladderLayer);
+
+
+        // ================= ATTACK INPUT =================
+        if (Input.GetMouseButtonDown(0) && !isAttacking)
+        {
+            isAttacking = true;
+            Invoke(nameof(ResetAttack), 0.6f); // match your attack animation length
+        }
+
 
         if (isOnLadder && Mathf.Abs(climbInput) > 0 && !isClimbingRope)
         {
@@ -211,27 +222,53 @@ public class MotherMovement : MonoBehaviour
         UpdateAnimations();
     }
 
+
+
+    void ResetAttack()
+    {
+        isAttacking = false;
+    }
+
+
+
     void UpdateAnimations()
     {
         if (animator == null) return;
 
         bool isMoving = Mathf.Abs(moveInput) > 0.1f;
 
-        bool jumping = !isGrounded && !isClimbing && !isClimbingRope;
+        // ================= ATTACK — highest priority =================
+        animator.SetBool(ParamIsAttack, isAttacking);
+
+        if (isAttacking)
+        {
+            animator.SetBool(ParamIsWalk, false);
+            animator.SetBool(ParamIsRun, false);
+            animator.SetBool(ParamIsJump, false);
+            animator.SetBool(ParamIsCrouch, false);
+            animator.SetBool(ParamIsClimb, false);
+            animator.SetBool(ParamIsClimbRope, false);
+            return;
+        }
+
+        // ================= JUMP — always first =================
+        bool jumping = !isGrounded && !isClimbing && !isClimbingRope && rb.linearVelocity.y > 0.1f;
         animator.SetBool(ParamIsJump, jumping);
 
         if (jumping)
         {
             animator.speed = 1f;
-
             animator.SetBool(ParamIsWalk, false);
             animator.SetBool(ParamIsRun, false);
             animator.SetBool(ParamIsCrouch, false);
+            animator.SetBool(ParamIsClimb, false);
+            animator.SetBool(ParamIsClimbRope, false);
             return;
         }
 
         animator.speed = 1f;
 
+        // ================= CLIMB =================
         animator.SetBool(ParamIsClimb, isClimbing);
         animator.SetBool(ParamIsClimbRope, isClimbingRope);
 
@@ -239,7 +276,6 @@ public class MotherMovement : MonoBehaviour
         {
             float climbSpeedValue = Mathf.Abs(climbInput);
             animator.SetFloat(ParamClimbSpeed, climbSpeedValue);
-
             animator.speed = (climbSpeedValue > 0.1f) ? 1f : 0f;
 
             animator.SetBool(ParamIsWalk, false);
@@ -248,18 +284,18 @@ public class MotherMovement : MonoBehaviour
             return;
         }
 
+        // ================= CROUCH =================
         animator.SetBool(ParamIsCrouch, isCrouching);
 
         if (isCrouching)
         {
-            float crouchMove = Mathf.Abs(moveInput);
-            animator.SetFloat("crouchSpeed", crouchMove);
-
+            animator.SetFloat("crouchSpeed", Mathf.Abs(moveInput));
             animator.SetBool(ParamIsWalk, false);
             animator.SetBool(ParamIsRun, false);
             return;
         }
 
+        // ================= NORMAL =================
         bool isRunning = isGrounded && isMoving && Input.GetKey(KeyCode.LeftShift);
         bool isWalking = isGrounded && isMoving && !isRunning;
 
@@ -343,3 +379,4 @@ public class MotherMovement : MonoBehaviour
         }
     }
 }
+
